@@ -12,9 +12,9 @@ from messenger import Messenger
 
 logger = logging.getLogger(__name__)
 
-BOTHUB_BASE_URL = os.environ.get("BOTHUB_BASE_URL", "https://bothub.chat/api/v1/")
+BOTHUB_BASE_URL = os.environ.get("BOTHUB_BASE_URL", "https://bothub.chat/api/v2/openai/v1")
 BOTHUB_API_KEY = os.environ.get("BOTHUB_API_KEY", "")
-AGENT_MODEL = os.environ.get("AGENT_MODEL", "gpt-4o")
+AGENT_MODEL = os.environ.get("AGENT_MODEL", os.environ.get("AGENT_LLM", "gpt-4o"))
 
 
 def extract_json(text: str) -> str:

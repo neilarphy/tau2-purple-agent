@@ -20,7 +20,7 @@
     properties: {
       agent_llm: { type: "string", default: "gpt-4o" },
       bothub_api_key: { type: "string", secret: true },
-      bothub_base_url: { type: "string", default: "https://bothub.chat/api/v1/" },
+      bothub_base_url: { type: "string", default: "https://bothub.chat/api/v2/openai/v1" },
     },
     required: ["bothub_api_key"],
     additionalProperties: false,
