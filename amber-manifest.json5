@@ -1,0 +1,29 @@
+{
+  manifest_version: "0.1.0",
+  config_schema: {
+    type: "object",
+    properties: {
+      agent_llm: { type: "string", default: "gpt-4o" },
+      bothub_api_key: { type: "string", secret: true },
+      bothub_base_url: { type: "string", default: "https://bothub.chat/api/v1/" },
+    },
+    required: ["bothub_api_key"],
+    additionalProperties: false,
+  },
+  slots: {
+    proxy: { kind: "a2a", optional: true },
+  },
+  program: {
+    image: "ghcr.io/neilarphy/tau2-purple-agent:latest",
+    entrypoint: ["uv", "run", "src/server.py"],
+    env: {
+      AGENT_MODEL: "${config.agent_llm}",
+      BOTHUB_API_KEY: "${config.bothub_api_key}",
+      BOTHUB_BASE_URL: "${config.bothub_base_url}",
+    },
+    provides: {
+      a2a: { protocol: "a2a", port: 9009, path: "/" },
+    },
+  },
+  exports: { a2a: "#program.a2a" },
+}

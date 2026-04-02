@@ -1,0 +1,18 @@
+[project]
+name = "tau2-purple-agent"
+version = "1.0.0"
+description = "Purple agent for tau2-bench on AgentBeats"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "a2a-sdk[http-server]>=0.3.20",
+    "uvicorn>=0.38.0",
+    "openai>=1.30.0",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "httpx>=0.28.1",
+]
