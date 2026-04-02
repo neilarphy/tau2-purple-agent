@@ -61,7 +61,7 @@ class Agent:
 
     async def run(self, message: Message, updater: TaskUpdater) -> None:
         input_text = get_message_text(message)
-        context_id = message.contextId or "default"
+        context_id = getattr(message, 'context_id', None) or getattr(message, 'contextId', None) or "default"
 
         await updater.update_status(
             TaskState.working, new_agent_text_message("Processing...")
