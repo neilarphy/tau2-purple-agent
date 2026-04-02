@@ -90,6 +90,7 @@ class Agent:
             })
 
         try:
+            logger.info(f"Calling LLM: model={AGENT_MODEL}, base_url={BOTHUB_BASE_URL}, msgs={len(self.conversations[context_id])}")
             response = await self.client.chat.completions.create(
                 model=AGENT_MODEL,
                 messages=self.conversations[context_id],
@@ -97,8 +98,9 @@ class Agent:
                 max_tokens=2048,
             )
             reply = response.choices[0].message.content or ""
+            logger.info(f"LLM reply (first 300): {reply[:300]}")
         except Exception as e:
-            logger.error(f"LLM call failed: {e}")
+            logger.error(f"LLM call FAILED: {type(e).__name__}: {e}")
             reply = json.dumps({"name": "respond", "arguments": {"content": "I apologize, I encountered an error. Could you please repeat your request?"}})
 
         self.conversations[context_id].append({
