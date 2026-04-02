@@ -1,5 +1,20 @@
 {
   manifest_version: "0.1.0",
+  program: {
+    image: "ghcr.io/neilarphy/tau2-purple-agent:latest",
+    entrypoint: ["uv", "run", "src/server.py", "--host", "0.0.0.0", "--port", "9009"],
+    env: {
+      AGENT_MODEL: "${config.agent_llm}",
+      BOTHUB_API_KEY: "${config.bothub_api_key}",
+      BOTHUB_BASE_URL: "${config.bothub_base_url}",
+      LOG_LEVEL: "INFO",
+    },
+    network: {
+      endpoints: [
+        { name: "endpoint", port: 9009 }
+      ]
+    }
+  },
   config_schema: {
     type: "object",
     properties: {
@@ -10,20 +25,10 @@
     required: ["bothub_api_key"],
     additionalProperties: false,
   },
-  slots: {
-    proxy: { kind: "a2a", optional: true },
+  provides: {
+    a2a: { kind: "a2a", endpoint: "endpoint" }
   },
-  program: {
-    image: "ghcr.io/neilarphy/tau2-purple-agent:latest",
-    entrypoint: ["uv", "run", "src/server.py"],
-    env: {
-      AGENT_MODEL: "${config.agent_llm}",
-      BOTHUB_API_KEY: "${config.bothub_api_key}",
-      BOTHUB_BASE_URL: "${config.bothub_base_url}",
-    },
-    provides: {
-      a2a: { protocol: "a2a", port: 9009, path: "/" },
-    },
-  },
-  exports: { a2a: "#program.a2a" },
+  exports: {
+    a2a: "a2a"
+  }
 }
