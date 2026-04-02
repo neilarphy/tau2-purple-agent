@@ -67,7 +67,6 @@ async def send_message(
         last_event = None
         outputs = {"response": "", "context_id": None}
 
-        # if streaming == False, only one event is generated
         async for event in client.send_message(outbound_msg):
             last_event = event
 

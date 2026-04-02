@@ -19,17 +19,14 @@ AGENT_MODEL = os.environ.get("AGENT_MODEL", "gpt-4o")
 
 def extract_json(text: str) -> str:
     """Extract JSON from LLM response, handling markdown code blocks."""
-    # Try ```json ... ``` blocks
     match = re.search(r"```(?:json)?\s*\n?(.*?)\n?\s*```", text, re.DOTALL)
     if match:
         return match.group(1).strip()
 
-    # Try to find raw JSON object
     match = re.search(r"\{.*\}", text, re.DOTALL)
     if match:
         return match.group(0).strip()
 
-    # Try JSON array
     match = re.search(r"\[.*\]", text, re.DOTALL)
     if match:
         return match.group(0).strip()
@@ -70,11 +67,9 @@ class Agent:
             TaskState.working, new_agent_text_message("Processing...")
         )
 
-        # Build conversation history
         if context_id not in self.conversations:
             self.conversations[context_id] = []
 
-            # First message contains the full prompt with policy + tools + user messages
             self.conversations[context_id].append({
                 "role": "system",
                 "content": (
@@ -89,13 +84,11 @@ class Agent:
                 "content": input_text,
             })
         else:
-            # Subsequent messages: tool results or user messages
             self.conversations[context_id].append({
                 "role": "user",
                 "content": input_text,
             })
 
-        # Call LLM
         try:
             response = await self.client.chat.completions.create(
                 model=AGENT_MODEL,
@@ -108,13 +101,11 @@ class Agent:
             logger.error(f"LLM call failed: {e}")
             reply = json.dumps({"name": "respond", "arguments": {"content": "I apologize, I encountered an error. Could you please repeat your request?"}})
 
-        # Save assistant reply to history
         self.conversations[context_id].append({
             "role": "assistant",
             "content": reply,
         })
 
-        # Parse and return clean JSON
         action = parse_action(reply)
         result = json.dumps(action)
 

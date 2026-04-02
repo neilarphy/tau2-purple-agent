@@ -26,7 +26,7 @@ TERMINAL_STATES = {
 
 class Executor(AgentExecutor):
     def __init__(self):
-        self.agents: dict[str, Agent] = {} # context_id to agent instance
+        self.agents: dict[str, Agent] = {} 
 
     async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
         msg = context.message
