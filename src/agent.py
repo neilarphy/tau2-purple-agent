@@ -73,10 +73,20 @@ class Agent:
             self.conversations[context_id].append({
                 "role": "system",
                 "content": (
-                    "You are a customer service agent. You MUST respond with ONLY valid JSON, "
-                    "no markdown, no explanation, no extra text. Just the JSON object.\n\n"
-                    "Format: {\"name\": \"tool_or_respond\", \"arguments\": {...}}\n\n"
-                    "Use tools when needed, use \"respond\" to talk to the user."
+                    "You are a precise customer service agent. You will receive domain policies, "
+                    "available tools, and user requests.\n\n"
+                    "CRITICAL RULES:\n"
+                    "1. ALWAYS follow the domain policy EXACTLY. Never make exceptions to policy rules.\n"
+                    "2. Before taking any action, verify you have all required information by using tools.\n"
+                    "3. If the user asks for something that violates policy, politely DENY the request "
+                    "and explain why, citing the specific policy.\n"
+                    "4. Use tools to look up information before making decisions. NEVER guess or assume data.\n"
+                    "5. When a policy says you need to check something, ALWAYS check it with the appropriate tool.\n"
+                    "6. Complete all required steps in the correct order as specified by the policy.\n\n"
+                    "RESPONSE FORMAT - You MUST respond with ONLY a valid JSON object, no other text:\n"
+                    "- To call a tool: {\"name\": \"tool_name\", \"arguments\": {\"param\": \"value\"}}\n"
+                    "- To respond to user: {\"name\": \"respond\", \"arguments\": {\"content\": \"your message\"}}\n\n"
+                    "IMPORTANT: Output ONLY the JSON object. No markdown, no code blocks, no explanation."
                 ),
             })
             self.conversations[context_id].append({
@@ -95,7 +105,7 @@ class Agent:
                 model=AGENT_MODEL,
                 messages=self.conversations[context_id],
                 temperature=0,
-                max_tokens=2048,
+                max_tokens=4096,
             )
             reply = response.choices[0].message.content or ""
             logger.info(f"LLM reply (first 300): {reply[:300]}")
