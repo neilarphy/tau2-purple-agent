@@ -106,23 +106,20 @@ class Agent:
             facts[f"res_{rid}_status"] = data.get("status", "")
 
     def _get_facts_summary(self, context_id: str) -> str:
-        """Build a concise summary of known facts for injection."""
+        """Build a concise summary of key facts (passengers, membership) for injection."""
         facts = self.known_facts.get(context_id, {})
         if not facts:
             return ""
         lines = ["KNOWN DATA (use this, do NOT ask user for any of it):"]
+        # Only include essential data that LLM tends to forget
         for k, v in facts.items():
-            if "_flights" in k:
-                flight_summary = []
-                if isinstance(v, list):
-                    for f in v:
-                        if isinstance(f, dict):
-                            flight_summary.append(f"{f.get('origin','')}->{f.get('destination','')} {f.get('date','')}")
-                lines.append(f"  {k}: {', '.join(flight_summary)}")
-            elif isinstance(v, (list, dict)):
-                lines.append(f"  {k}: {json.dumps(v, default=str)}")
-            else:
-                lines.append(f"  {k}: {v}")
+            if "_passengers" in k or k in ("user_name", "user_id", "membership"):
+                if isinstance(v, (list, dict)):
+                    lines.append(f"  {k}: {json.dumps(v, default=str)}")
+                else:
+                    lines.append(f"  {k}: {v}")
+        if len(lines) <= 1:
+            return ""
         return "\n".join(lines)
 
     def _check_duplicate_call(self, context_id: str, action: dict) -> bool:
@@ -303,7 +300,7 @@ class Agent:
                 ),
             })
 
-        if agent_turns >= 20:
+        if agent_turns >= 25:
             self.conversations[context_id].append({
                 "role": "system",
                 "content": (
@@ -312,7 +309,7 @@ class Agent:
                     "Skip confirmations if you already have the data needed."
                 ),
             })
-        elif agent_turns >= 12:
+        elif agent_turns >= 18:
             self.conversations[context_id].append({
                 "role": "system",
                 "content": (
@@ -323,7 +320,7 @@ class Agent:
             })
 
         facts_summary = self._get_facts_summary(context_id)
-        if facts_summary and agent_turns >= 2 and agent_turns % 3 == 0:
+        if facts_summary and agent_turns >= 3 and agent_turns % 5 == 0:
             self.conversations[context_id].append({
                 "role": "system",
                 "content": facts_summary,
@@ -356,25 +353,13 @@ class Agent:
             logger.warning(f"Unknown tool '{action['name']}', known: {known}. Treating as fallback.")
             was_fallback = True
 
-        is_duplicate = False
-        if not was_fallback and self._check_duplicate_call(context_id, action):
-            logger.warning(f"Duplicate call detected: {action['name']}. Asking LLM to do something else.")
-            is_duplicate = True
-            was_fallback = True
-            self.conversations[context_id].append({
-                "role": "user",
-                "content": (
-                    f"You already called {action['name']} with the same arguments. "
-                    "The result is in the conversation above. Use that data and proceed to the next step. "
-                    "Do NOT repeat the same call."
-                ),
-            })
+        # Log duplicate calls but don't block them (LLM may have valid reasons)
+        if not was_fallback:
+            self._check_duplicate_call(context_id, action)
 
         if was_fallback:
             logger.warning("Retrying with correction prompt")
-            if not is_duplicate:
-                # Only add generic correction if we didn't already add duplicate warning
-                self.conversations[context_id].append({
+            self.conversations[context_id].append({
                     "role": "user",
                     "content": (
                         "Your previous response was not valid. "
