@@ -174,10 +174,15 @@ class Agent:
                     "- Use exact parameter names and types from tool definitions.\n"
                     "- If user describes something without an ID, look up their account and find it.\n"
                     "- Only ask for info users would reasonably know (name, email, what they want).\n\n"
-                    "## EFFICIENCY\n"
+                    "## EFFICIENCY (critical — wasting steps can cause task failure)\n"
+                    "- Once user confirms an action (says 'yes'), IMMEDIATELY call the API. No extra steps.\n"
+                    "- Do NOT iterate through all reservations unless necessary. Ask user which one, "
+                    "or deduce from their description (e.g. 'flight to Chicago' → find ORD reservation).\n"
+                    "- If user wants to BOOK a new flight, don't look up existing reservations first — "
+                    "ask for trip details directly.\n"
                     "- If user describes something (e.g. 'my flight to Chicago'), find the match yourself.\n"
                     "- If there's only one match, act on it directly.\n"
-                    "- Minimize tool calls by deducing from context.\n\n"
+                    "- Minimize tool calls. Every extra step risks running out of turns.\n\n"
                     "## RESPONSE FORMAT\n"
                     "Output ONLY a raw JSON object. No markdown, no code fences, no extra text.\n"
                     "- Tool call: {\"name\": \"tool_name\", \"arguments\": {\"param\": \"value\"}}\n"
@@ -196,6 +201,24 @@ class Agent:
             self.conversations[context_id].append({
                 "role": "user",
                 "content": input_text,
+            })
+
+        # Inject policy reminder every 10 turns to prevent drift
+        turn_count = len(self.conversations[context_id])
+        if turn_count > 6 and turn_count % 10 == 0:
+            self.conversations[context_id].append({
+                "role": "system",
+                "content": (
+                    "REMINDER: Re-read the policy before responding. Key rules:\n"
+                    "- Never proactively offer compensation. Only if user asks.\n"
+                    "- Compensation: cancelled=$100×passengers, delayed=$50×passengers (only after change/cancel).\n"
+                    "- Eligible for compensation: silver/gold OR insured OR business only.\n"
+                    "- Cancel allowed if: within 24hrs OR airline cancelled OR business OR insured+covered reason.\n"
+                    "- Basic economy: cannot modify flights, CAN change cabin.\n"
+                    "- Before any booking action, list details and get user confirmation.\n"
+                    "- Once user confirms, IMMEDIATELY call the API. Do not delay.\n"
+                    "- Be efficient: don't iterate all reservations if you can deduce the right one."
+                ),
             })
 
         try:
