@@ -103,9 +103,31 @@ class Agent:
         if context_id not in self.conversations:
             self.conversations[context_id] = []
 
-            self.conversations[context_id].append({
-                "role": "system",
-                "content": (
+            # ============================================================
+            # PROMPT MODE: switch between "minimal" and "full" by toggling
+            # the variable below.
+            # ============================================================
+            PROMPT_MODE = "minimal"  # "minimal" or "full"
+
+            if PROMPT_MODE == "minimal":
+                system_content = (
+                    "You are an airline customer service agent. "
+                    "Follow the policy in the first message EXACTLY — it is the ONLY source of truth. "
+                    "Never invent rules not in the policy.\n\n"
+                    "AIRPORT CODES (never ask — map yourself): "
+                    "New York=JFK, Los Angeles=LAX, Chicago=ORD, San Francisco=SFO, "
+                    "Miami=MIA, Dallas=DFW, Atlanta=ATL, Seattle=SEA, Boston=BOS, "
+                    "Denver=DEN, Houston=IAH, Washington DC=DCA, Philadelphia=PHL, "
+                    "Phoenix=PHX, Minneapolis=MSP, Detroit=DTW, Orlando=MCO, "
+                    "Portland=PDX, Las Vegas=LAS, Salt Lake City=SLC, Tampa=TPA\n\n"
+                    "Never ask user for reservation IDs or booking codes — look them up yourself.\n"
+                    "Never ask for data you already retrieved (DOB, passenger IDs).\n\n"
+                    "Output ONLY a raw JSON object. No markdown, no code fences, no extra text.\n"
+                    "- Tool call: {\"name\": \"tool_name\", \"arguments\": {\"param\": \"value\"}}\n"
+                    "- User reply: {\"name\": \"respond\", \"arguments\": {\"content\": \"message\"}}"
+                )
+            else:  # "full"
+                system_content = (
                     "You are a strict, policy-compliant customer service agent.\n\n"
                     "## WORKFLOW\n"
                     "Before each response, think step by step:\n"
@@ -187,7 +209,11 @@ class Agent:
                     "Output ONLY a raw JSON object. No markdown, no code fences, no extra text.\n"
                     "- Tool call: {\"name\": \"tool_name\", \"arguments\": {\"param\": \"value\"}}\n"
                     "- User reply: {\"name\": \"respond\", \"arguments\": {\"content\": \"message\"}}"
-                ),
+                )
+
+            self.conversations[context_id].append({
+                "role": "system",
+                "content": system_content,
             })
             self.conversations[context_id].append({
                 "role": "user",
