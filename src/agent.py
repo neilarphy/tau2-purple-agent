@@ -107,7 +107,7 @@ class Agent:
             # PROMPT MODE: switch between "minimal" and "full" by toggling
             # the variable below.
             # ============================================================
-            PROMPT_MODE = "minimal"  # "minimal" or "full"
+            PROMPT_MODE = "full"  # "minimal" or "full"
 
             if PROMPT_MODE == "minimal":
                 system_content = (
@@ -245,9 +245,45 @@ class Agent:
                 ),
             })
 
+        # ── Call 1: Plan (hidden reasoning, not stored in history) ──────────
+        plan_text = ""
+        try:
+            plan_messages = self._get_trimmed_messages(context_id) + [{
+                "role": "user",
+                "content": (
+                    "Before acting, reason through the situation step by step (do NOT output JSON yet):\n"
+                    "1. What does the user want?\n"
+                    "2. What data do I already have? What data do I still need?\n"
+                    "3. Which exact policy rule applies? Quote it.\n"
+                    "4. Are all conditions met? What is the single next action?\n"
+                    "Write your reasoning in plain text."
+                ),
+            }]
+            logger.info(f"Call 1 (plan): model={AGENT_MODEL}, msgs={len(plan_messages)}")
+            plan_resp = await self.client.chat.completions.create(
+                model=AGENT_MODEL,
+                messages=plan_messages,
+                temperature=0,
+                max_tokens=1024,
+            )
+            plan_text = strip_thinking(plan_resp.choices[0].message.content or "")
+            logger.info(f"Plan (first 300): {plan_text[:300]}")
+        except Exception as e:
+            logger.warning(f"Plan call failed (continuing without plan): {e}")
+
+        # ── Call 2: Execute (JSON action, stored in history) ─────────────
         try:
             messages = self._get_trimmed_messages(context_id)
-            logger.info(f"Calling LLM: model={AGENT_MODEL}, base_url={BOTHUB_BASE_URL}, msgs={len(messages)} (full={len(self.conversations[context_id])})")
+            if plan_text:
+                messages = messages + [{
+                    "role": "user",
+                    "content": (
+                        f"Your reasoning:\n{plan_text}\n\n"
+                        "Now output the single next action as a raw JSON object only. "
+                        "No markdown, no extra text."
+                    ),
+                }]
+            logger.info(f"Call 2 (execute): model={AGENT_MODEL}, msgs={len(messages)} (full={len(self.conversations[context_id])})")
             response = await self.client.chat.completions.create(
                 model=AGENT_MODEL,
                 messages=messages,
